@@ -1,19 +1,118 @@
-/**
- * @examforge/db
- *
- * Prisma schema, migrations, and generated client for ExamForge.
- *
- * This file will re-export the Prisma client singleton and all generated
- * types after Phase 1.2 (Prisma schema setup).
- *
- * Usage (once Prisma is configured):
- *   import { prisma } from '@examforge/db';
- *   import type { User, Exam, Attempt } from '@examforge/db';
- *
- * TODO(1.2.5): export Prisma client singleton
- * TODO(1.2.5): export generated Prisma types
- */
+import { PrismaClient } from '@prisma/client';
 
-// Placeholder export to satisfy TypeScript `rootDir` requirement.
-// Remove when Prisma client exports are added.
-export {};
+export * from '@prisma/client';
+
+const createPrismaClient = () => {
+  const client = new PrismaClient();
+
+  return client.$extends({
+    query: {
+      $allModels: {
+        async findMany({ model, args, query }) {
+          if (
+            [
+              'User',
+              'Exam',
+              'ExamVersion',
+              'Question',
+              'Attempt',
+              'UploadedFile',
+              'ParserJob',
+              'ReviewQueue',
+            ].includes(model)
+          ) {
+            args.where = { deletedAt: null, ...args.where };
+          }
+          return query(args);
+        },
+        async findFirst({ model, args, query }) {
+          if (
+            [
+              'User',
+              'Exam',
+              'ExamVersion',
+              'Question',
+              'Attempt',
+              'UploadedFile',
+              'ParserJob',
+              'ReviewQueue',
+            ].includes(model)
+          ) {
+            args.where = { deletedAt: null, ...args.where };
+          }
+          return query(args);
+        },
+        async findUnique({ model, args, query }) {
+          if (
+            [
+              'User',
+              'Exam',
+              'ExamVersion',
+              'Question',
+              'Attempt',
+              'UploadedFile',
+              'ParserJob',
+              'ReviewQueue',
+            ].includes(model)
+          ) {
+            args.where = { deletedAt: null, ...args.where };
+          }
+          return query(args);
+        },
+        async delete({ model, args, query }) {
+          if (
+            [
+              'User',
+              'Exam',
+              'ExamVersion',
+              'Question',
+              'Attempt',
+              'UploadedFile',
+              'ParserJob',
+              'ReviewQueue',
+            ].includes(model)
+          ) {
+            return (client as any)[model].update({
+              where: args.where,
+              data: { deletedAt: new Date() },
+            });
+          }
+          return query(args);
+        },
+        async deleteMany({ model, args, query }) {
+          if (
+            [
+              'User',
+              'Exam',
+              'ExamVersion',
+              'Question',
+              'Attempt',
+              'UploadedFile',
+              'ParserJob',
+              'ReviewQueue',
+            ].includes(model)
+          ) {
+            return (client as any)[model].updateMany({
+              where: args.where,
+              data: { deletedAt: new Date() },
+            });
+          }
+          return query(args);
+        },
+      },
+    },
+  });
+};
+
+type ExtendedPrismaClient = ReturnType<typeof createPrismaClient>;
+
+declare global {
+  // eslint-disable-next-line no-var
+  var prismaGlobal: ExtendedPrismaClient | undefined;
+}
+
+export const prisma = globalThis.prismaGlobal ?? createPrismaClient();
+
+if (process.env.NODE_ENV !== 'production') {
+  globalThis.prismaGlobal = prisma;
+}

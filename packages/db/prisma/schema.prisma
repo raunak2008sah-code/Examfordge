@@ -1,0 +1,359 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider     = "postgresql"
+  url          = env("DATABASE_URL")
+  directUrl    = env("DIRECT_URL")
+  relationMode = "foreignKeys"
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum RoleName {
+  ADMIN
+  REVIEWER
+  STUDENT
+}
+
+enum FilePurpose {
+  QUESTION_PAPER
+  ANSWER_KEY
+}
+
+enum ParserStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum ReviewStatus {
+  PENDING
+  IN_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum ExamVersionStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+  AUTO_SUBMITTED
+  ABANDONED
+}
+
+enum OptionLabel {
+  A
+  B
+  C
+  D
+}
+
+enum ExamType {
+  JEE_MAIN
+}
+
+// ============================================================================
+// MODELS
+// ============================================================================
+
+model User {
+  id           String    @id @default(uuid()) @db.Uuid
+  email        String    @unique
+  name         String
+  passwordHash String?
+  roleId       String    @db.Uuid
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  // Relations
+  role                   Role           @relation(fields: [roleId], references: [id])
+  sessions               Session[]
+  uploadedFiles          UploadedFile[]
+  attempts               Attempt[]
+  auditLogs              AuditLog[]
+  reviewQueuesAsAssignee ReviewQueue[]  @relation("ReviewQueueAssignee")
+  reviewQueuesAsReviewer ReviewQueue[]  @relation("ReviewQueueReviewer")
+  exams                  Exam[]
+  examVersions           ExamVersion[]
+
+  @@index([roleId])
+  @@index([deletedAt])
+  @@map("users")
+}
+
+model Role {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        RoleName @unique
+  description String?
+
+  // Relations
+  users User[]
+
+  @@map("roles")
+}
+
+model Session {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model UploadedFile {
+  id               String      @id @default(uuid()) @db.Uuid
+  storagePath      String      @unique
+  originalFilename String
+  mimeType         String
+  sizeBytes        Int
+  checksum         String
+  uploadedBy       String      @db.Uuid
+  purpose          FilePurpose
+  createdAt        DateTime    @default(now())
+  deletedAt        DateTime?
+
+  // Relations
+  user          User        @relation(fields: [uploadedBy], references: [id])
+  parserJobs    ParserJob[] @relation("FileParserJobs")
+  answerKeyJobs ParserJob[] @relation("AnswerKeyParserJobs")
+
+  @@index([uploadedBy])
+  @@index([checksum])
+  @@map("uploaded_files")
+}
+
+model ParserJob {
+  id                String       @id @default(uuid()) @db.Uuid
+  fileId            String       @db.Uuid
+  answerKeyFileId   String?      @db.Uuid
+  status            ParserStatus
+  resultJson        Json?
+  overallConfidence Float?
+  errorSummary      String?
+  startedAt         DateTime?
+  completedAt       DateTime?
+  createdAt         DateTime     @default(now())
+
+  // Relations
+  file          UploadedFile  @relation("FileParserJobs", fields: [fileId], references: [id], onDelete: Restrict)
+  answerKeyFile UploadedFile? @relation("AnswerKeyParserJobs", fields: [answerKeyFileId], references: [id], onDelete: Restrict)
+  reviewQueue   ReviewQueue?
+
+  @@index([status])
+  @@index([fileId])
+  @@index([overallConfidence])
+  @@map("parser_jobs")
+}
+
+model ReviewQueue {
+  id          String       @id @default(uuid()) @db.Uuid
+  parserJobId String       @unique @db.Uuid
+  workingJson Json
+  status      ReviewStatus
+  assignedTo  String?      @db.Uuid
+  reviewedBy  String?      @db.Uuid
+  reviewedAt  DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  deletedAt   DateTime?
+
+  // Relations
+  parserJob ParserJob @relation(fields: [parserJobId], references: [id], onDelete: Restrict)
+  assignee  User?     @relation("ReviewQueueAssignee", fields: [assignedTo], references: [id])
+  reviewer  User?     @relation("ReviewQueueReviewer", fields: [reviewedBy], references: [id])
+
+  @@index([status])
+  @@index([assignedTo])
+  @@map("review_queues")
+}
+
+model Exam {
+  id               String    @id @default(uuid()) @db.Uuid
+  title            String
+  examType         ExamType
+  ownerId          String    @db.Uuid
+  currentVersionId String?   @db.Uuid
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  deletedAt        DateTime?
+
+  // Relations
+  owner    User          @relation(fields: [ownerId], references: [id])
+  versions ExamVersion[] @relation("ExamVersions")
+
+  // NOTE: currentVersionId points to an ExamVersion, but to avoid circular foreign key creation issues 
+  // during migrations in Prisma, we typically leave this as an unenforced relation at the DB level, 
+  // or define the relation carefully. We will enforce it via app logic or a standard relation.
+  currentVersion ExamVersion? @relation("CurrentExamVersion", fields: [currentVersionId], references: [id])
+
+  @@index([ownerId])
+  @@index([examType])
+  @@map("exams")
+}
+
+model ExamVersion {
+  id            String            @id @default(uuid()) @db.Uuid
+  examId        String            @db.Uuid
+  versionNumber Int
+  status        ExamVersionStatus
+  snapshotJson  Json?
+  publishedBy   String?           @db.Uuid
+  publishedAt   DateTime?
+  createdAt     DateTime          @default(now())
+  deletedAt     DateTime?
+
+  // Relations
+  exam      Exam      @relation("ExamVersions", fields: [examId], references: [id])
+  publisher User?     @relation(fields: [publishedBy], references: [id])
+  sections  Section[]
+  attempts  Attempt[]
+
+  // Reverse relation for Exam.currentVersionId
+  examsCurrent Exam[] @relation("CurrentExamVersion")
+
+  @@unique([examId, versionNumber])
+  @@index([status])
+  @@map("exam_versions")
+}
+
+model Section {
+  id            String @id @default(uuid()) @db.Uuid
+  examVersionId String @db.Uuid
+  name          String
+  order         Int
+
+  // Relations
+  examVersion ExamVersion @relation(fields: [examVersionId], references: [id], onDelete: Restrict)
+  questions   Question[]
+
+  @@unique([examVersionId, order])
+  @@index([examVersionId])
+  @@map("sections")
+}
+
+model Question {
+  id            String    @id @default(uuid()) @db.Uuid
+  sectionId     String    @db.Uuid
+  displayNumber String
+  statement     String
+  imageUrls     String[]
+  order         Int
+  deletedAt     DateTime?
+
+  // Relations
+  section          Section           @relation(fields: [sectionId], references: [id], onDelete: Restrict)
+  options          Option[]
+  attemptResponses AttemptResponse[]
+
+  @@unique([sectionId, order])
+  @@index([sectionId])
+  @@map("questions")
+}
+
+model Option {
+  id         String      @id @default(uuid()) @db.Uuid
+  questionId String      @db.Uuid
+  label      OptionLabel
+  text       String
+  isCorrect  Boolean
+
+  // Relations
+  question         Question          @relation(fields: [questionId], references: [id], onDelete: Restrict)
+  attemptResponses AttemptResponse[]
+
+  @@unique([questionId, label])
+  @@index([questionId])
+  @@map("options")
+}
+
+model Attempt {
+  id             String        @id @default(uuid()) @db.Uuid
+  userId         String        @db.Uuid
+  examVersionId  String        @db.Uuid
+  status         AttemptStatus
+  startedAt      DateTime
+  submittedAt    DateTime?
+  expiresAt      DateTime
+  score          Float?
+  lastAutosaveAt DateTime?
+  deletedAt      DateTime?
+
+  // Relations
+  user        User              @relation(fields: [userId], references: [id])
+  examVersion ExamVersion       @relation(fields: [examVersionId], references: [id], onDelete: Restrict)
+  responses   AttemptResponse[]
+
+  // Note: Partial unique index on (userId, examVersionId) WHERE status = 'IN_PROGRESS' 
+  // will be added manually in a custom migration.
+
+  @@index([userId])
+  @@index([examVersionId])
+  @@index([status])
+  @@map("attempts")
+}
+
+model AttemptResponse {
+  id               String    @id @default(uuid()) @db.Uuid
+  attemptId        String    @db.Uuid
+  questionId       String    @db.Uuid
+  selectedOptionId String?   @db.Uuid
+  answeredAt       DateTime?
+  markedForReview  Boolean   @default(false)
+
+  // Relations
+  attempt        Attempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question       Question @relation(fields: [questionId], references: [id])
+  selectedOption Option?  @relation(fields: [selectedOptionId], references: [id])
+
+  @@unique([attemptId, questionId])
+  @@index([questionId])
+  @@map("attempt_responses")
+}
+
+model Settings {
+  key       String   @id
+  value     Json
+  updatedBy String?  @db.Uuid
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String?  @db.Uuid
+  action     String
+  entityType String
+  entityId   String   @db.Uuid
+  metadata   Json
+  createdAt  DateTime @default(now())
+
+  // Relations
+  actor User? @relation(fields: [actorId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([actorId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

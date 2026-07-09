@@ -33,6 +33,7 @@
     "db:validate": "prisma validate"
   },
   "devDependencies": {
+    "@types/node": "20.17.10",
     "prisma": "6.1.0",
     "rimraf": "6.0.1",
     "tsx": "4.19.2",
