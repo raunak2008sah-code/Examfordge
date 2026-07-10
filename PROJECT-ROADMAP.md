@@ -32,12 +32,12 @@
 
 ### 1.3 Shared Types & Contracts
 
-| ID    | Task                                                                                   | Dependencies | Est. | Status |
-| ----- | -------------------------------------------------------------------------------------- | ------------ | ---- | ------ |
-| 1.3.1 | Generate TypeScript types from Prisma to `packages/shared-types/prisma`                | 1.2.5        | 0.5h | ☐      |
-| 1.3.2 | Create FastAPI OpenAPI spec for parser service (endpoints per 05-Database-API.md §6.5) | 1.1.1        | 1h   | ☐      |
-| 1.3.3 | Generate TypeScript client types from OpenAPI to `packages/shared-types/api`           | 1.3.2        | 0.5h | ☐      |
-| 1.3.4 | Add `make types:generate` and `make types:verify` scripts                              | 1.3.1, 1.3.3 | 1h   | ☐      |
+| ID    | Task                                                                       | Dependencies | Est. | Status |
+| ----- | -------------------------------------------------------------------------- | ------------ | ---- | ------ |
+| 1.3.1 | Create shared Zod schemas & infer DTOs from Zod to `packages/shared-types` | 1.2.5        | 0.5h | ✅     |
+| 1.3.2 | Create shared API request contracts and parser contracts                   | 1.1.1        | 1h   | ✅     |
+| 1.3.3 | Create shared enums and error types                                        | 1.3.2        | 0.5h | ✅     |
+| 1.3.4 | Create reusable validation utilities                                       | 1.3.1, 1.3.3 | 1h   | ✅     |
 
 ### 1.4 Authentication Foundation
 
