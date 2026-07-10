@@ -12,7 +12,7 @@ import {
   TableBody,
 } from '@/components/ui/tables/Table';
 import { Badge } from '@/components/ui/utility/Utilities';
-import { prisma } from '@examforge/db';
+import { prisma, type Prisma } from '@examforge/db';
 import Link from 'next/link';
 
 export const metadata = { title: 'Dashboard' };
@@ -85,7 +85,7 @@ export default async function AdminDashboardPage() {
                 <TableCell isHeader>Owner</TableCell>
               </TableHeader>
               <TableBody>
-                {recentExams.map((exam) => (
+                {recentExams.map((exam: Prisma.ExamGetPayload<{ include: { owner: true } }>) => (
                   <TableRow key={exam.id}>
                     <TableCell>
                       <Link
