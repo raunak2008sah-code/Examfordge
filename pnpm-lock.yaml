@@ -18,6 +18,9 @@ importers:
       '@commitlint/config-conventional':
         specifier: 19.6.0
         version: 19.6.0
+      '@prisma/engines':
+        specifier: 6.1.0
+        version: 6.1.0
       husky:
         specifier: 9.1.7
         version: 9.1.7

@@ -5,7 +5,7 @@
   "description": "ExamForge — JEE Main CBT platform with document processing pipeline",
   "packageManager": "pnpm@9.15.0",
   "engines": {
-    "node": ">=20.0.0",
+    "node": ">=24.0.0",
     "pnpm": ">=9.0.0"
   },
   "repository": {
@@ -23,7 +23,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "pnpm -r test",
-    "clean": "pnpm -r clean && rimraf node_modules",
+    "clean": "pnpm -r clean && npx rimraf node_modules",
     "install:all": "pnpm install",
     "postinstall": "pnpm --filter @examforge/db db:generate",
     "prepare": "husky"
@@ -31,6 +31,7 @@
   "devDependencies": {
     "@commitlint/cli": "19.6.1",
     "@commitlint/config-conventional": "19.6.0",
+    "@prisma/engines": "6.1.0",
     "husky": "9.1.7",
     "lint-staged": "15.3.0",
     "prettier": "3.4.2",
