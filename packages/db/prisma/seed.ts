@@ -19,14 +19,24 @@ async function main() {
   }
   console.log('✔ Roles seeded');
 
-  // 2. Default Admin User
-  const adminRole = await prisma.role.findUnique({ where: { name: 'ADMIN' } });
+  // 2. Default Users
+  const [adminRole, reviewerRole, studentRole] = await Promise.all([
+    prisma.role.findUnique({ where: { name: 'ADMIN' } }),
+    prisma.role.findUnique({ where: { name: 'REVIEWER' } }),
+    prisma.role.findUnique({ where: { name: 'STUDENT' } }),
+  ]);
   if (!adminRole) throw new Error('ADMIN role not found');
+  if (!reviewerRole) throw new Error('REVIEWER role not found');
+  if (!studentRole) throw new Error('STUDENT role not found');
 
   const adminEmail = 'admin@examforge.com';
   await prisma.user.upsert({
     where: { email: adminEmail },
-    update: {},
+    update: {
+      deletedAt: null,
+      isActive: true,
+      roleId: adminRole.id,
+    },
     create: {
       email: adminEmail,
       name: 'System Admin',
@@ -36,6 +46,52 @@ async function main() {
     },
   });
   console.log('✔ Default admin user seeded');
+
+  const sampleUsers = [
+    {
+      email: 'reviewer@examforge.com',
+      name: 'Review Lead',
+      roleId: reviewerRole.id,
+      isActive: true,
+    },
+    {
+      email: 'student.one@examforge.com',
+      name: 'Aarav Sharma',
+      roleId: studentRole.id,
+      isActive: true,
+    },
+    {
+      email: 'student.two@examforge.com',
+      name: 'Meera Iyer',
+      roleId: studentRole.id,
+      isActive: true,
+    },
+    {
+      email: 'inactive.student@examforge.com',
+      name: 'Inactive Student',
+      roleId: studentRole.id,
+      isActive: false,
+    },
+  ];
+
+  for (const user of sampleUsers) {
+    await prisma.user.upsert({
+      where: { email: user.email },
+      update: {
+        name: user.name,
+        roleId: user.roleId,
+        isActive: user.isActive,
+        deletedAt: null,
+      },
+      create: {
+        email: user.email,
+        name: user.name,
+        roleId: user.roleId,
+        isActive: user.isActive,
+      },
+    });
+  }
+  console.log('✔ Sample users seeded');
 
   // 3. Default Settings (e.g. confidence thresholds)
   const defaultSettings = [

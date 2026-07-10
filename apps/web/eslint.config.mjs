@@ -115,7 +115,9 @@ const config = [
     files: [
       '**/server/**/*.ts', 
       '**/actions/**/*.ts', 
+      '**/actions.ts',
       '**/queries/**/*.ts', 
+      '**/queries.ts',
       'app/api/**/*.ts',
       'app/**/page.tsx',
       'app/**/layout.tsx'

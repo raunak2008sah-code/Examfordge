@@ -39,6 +39,9 @@ importers:
       '@examforge/db':
         specifier: workspace:^
         version: link:../../packages/db
+      '@examforge/shared-types':
+        specifier: workspace:^
+        version: link:../../packages/shared-types
       better-auth:
         specifier: ^1.6.23
         version: 1.6.23(@prisma/client@6.1.0(prisma@6.1.0))(next@15.3.9(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(pg@8.22.0)(prisma@6.1.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(vitest@3.2.6(@types/node@20.17.10))
